@@ -1,0 +1,22 @@
+package gql
+
+import (
+	"{{ .ProjectNamespace }}/internal/gql/api"
+	"github.com/graphql-go/graphql"
+)
+
+// RootQuery expose query endpoint
+var RootQuery = graphql.NewObject(graphql.ObjectConfig{
+	Name:        "query",
+	Description: "{{ .ProjectName }} query entrypoint",
+	Fields: graphql.Fields{
+		"api": api.Query,
+	},
+})
+
+// RootMutation expose query endpoint
+var RootMutation = graphql.NewObject(graphql.ObjectConfig{
+	Name:        "mutation",
+	Description: "{{ .ProjectName }} mutation entrypoint",
+	Fields:      nil,
+})

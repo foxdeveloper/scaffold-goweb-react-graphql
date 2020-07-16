@@ -1,0 +1,22 @@
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"{{ .ProjectNamespace }}/internal/config"
+	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
+)
+
+func serveHTTP(conf *config.Config, r *chi.Mux) {
+	if conf.Env == "prod" {
+		if err := http.ListenAndServeTLS(conf.HTTP.GetBaseURL(), conf.HTTP.CRTFile, conf.HTTP.KeyFile, r); err != nil {
+			log.Fatalf("%+v", errors.Wrapf(err, "could not listen and serve TLS HTTP"))
+		}
+	}
+
+	if err := http.ListenAndServe(conf.HTTP.GetBaseURL(), r); err != nil {
+		log.Fatalf("%+v", errors.Wrapf(err, "could not listen and serve HTTP"))
+	}
+}

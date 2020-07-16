@@ -1,0 +1,14 @@
+version: 1
+vars:
+  - type: string
+    name: ProjectName
+    description: Project Name
+    constraints:
+      - rule: Input == ""
+        message: The project name cannot be empty.
+  - type: string
+    name: ProjectNamespace
+    description: The Go module namespace
+    constraints:
+      - rule: Input == ""
+        message: The module namespace cannot be empty.

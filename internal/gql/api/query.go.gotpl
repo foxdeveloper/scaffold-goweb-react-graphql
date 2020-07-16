@@ -1,0 +1,19 @@
+package api
+
+import (
+	"{{ .ProjectNamespace }}/internal/build"
+	"github.com/graphql-go/graphql"
+	"gitlab.com/wpetit/goweb/middleware/container"
+)
+
+// Query API endpoint definition
+var Query = &graphql.Field{
+	Description: "Retrieve API informations",
+	Type:        Type,
+	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		ctn := container.Must(p.Context)
+		build := build.Must(ctn)
+
+		return build, nil
+	},
+}

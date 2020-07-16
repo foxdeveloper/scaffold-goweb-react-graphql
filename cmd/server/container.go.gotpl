@@ -1,0 +1,69 @@
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"{{ .ProjectNamespace }}/internal/build"
+	"{{ .ProjectNamespace }}/internal/config"
+	"github.com/gorilla/sessions"
+	"github.com/pkg/errors"
+	"gitlab.com/wpetit/goweb/service"
+	"gitlab.com/wpetit/goweb/service/session"
+	"gitlab.com/wpetit/goweb/session/gorilla"
+)
+
+func getServiceContainer(conf *config.Config) (*service.Container, error) {
+	// Initialize and configure service container
+	ctn := service.NewContainer()
+
+	ctn.Provide(build.ServiceName, build.ServiceProvider(ProjectVersion, GitRef, BuildDate))
+
+	// Generate random cookie authentication key if none is set
+	if conf.HTTP.CookieAuthenticationKey == "" {
+		log.Println("could not find cookie authentication key. generating one...")
+
+		cookieAuthenticationKey, err := gorilla.GenerateRandomBytes(64)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not generate cookie authentication key")
+		}
+
+		conf.HTTP.CookieAuthenticationKey = string(cookieAuthenticationKey)
+	}
+
+	// Generate random cookie encryption key if none is set
+	if conf.HTTP.CookieEncryptionKey == "" {
+		log.Println("could not find cookie encryption key. generating one...")
+
+		cookieEncryptionKey, err := gorilla.GenerateRandomBytes(32)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not generate cookie encryption key")
+		}
+
+		conf.HTTP.CookieEncryptionKey = string(cookieEncryptionKey)
+	}
+
+	// Create and initialize HTTP session service provider
+	cookieStore := sessions.NewCookieStore(
+		[]byte(conf.HTTP.CookieAuthenticationKey),
+		[]byte(conf.HTTP.CookieEncryptionKey),
+	)
+
+	// Define default cookie options
+	cookieStore.Options = &sessions.Options{
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   conf.HTTP.CookieMaxAge,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	ctn.Provide(
+		session.ServiceName,
+		gorilla.ServiceProvider("trading_bot", cookieStore),
+	)
+
+	// Create and expose config service provider
+	ctn.Provide(config.ServiceName, config.ServiceProvider(conf))
+
+	return ctn, nil
+}

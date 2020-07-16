@@ -1,0 +1,44 @@
+package api
+
+import (
+	"{{ .ProjectNamespace }}/internal/build"
+	"github.com/graphql-go/graphql"
+)
+
+// Type API definition
+var Type = graphql.NewObject(graphql.ObjectConfig{
+	Name:        "API",
+	Description: "The API type",
+	Fields: graphql.Fields{
+		"projectVersion": &graphql.Field{
+			Type:        graphql.String,
+			Description: "Project version",
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if info, ok := p.Source.(*build.Info); ok {
+					return info.ProjectVersion, nil
+				}
+				return "", nil
+			},
+		},
+		"gitRef": &graphql.Field{
+			Type:        graphql.String,
+			Description: "Git reference",
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if info, ok := p.Source.(*build.Info); ok {
+					return info.GitRef, nil
+				}
+				return "", nil
+			},
+		},
+		"buildDate": &graphql.Field{
+			Type:        graphql.String,
+			Description: "Build date",
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if info, ok := p.Source.(*build.Info); ok {
+					return info.BuildDate, nil
+				}
+				return "", nil
+			},
+		},
+	},
+})
