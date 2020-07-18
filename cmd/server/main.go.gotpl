@@ -59,6 +59,10 @@ func main() {
 		conf = config.DefaultConfig()
 	}
 
+	if err := config.WithEnvironment(conf); err != nil {
+		log.Fatalf("%+v", errors.Wrap(err, "could not override config with environment"))
+	}
+
 	if dumpConfig {
 		if err := conf.Dump(os.Stdout); err != nil {
 			log.Fatalf("%+v", errors.Wrapf(err, "could not dump config"))

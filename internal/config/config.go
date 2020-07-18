@@ -4,14 +4,16 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
 // Config structure definition
 type Config struct {
-	Env     string      `yaml:"env"`
-	WorkDir string      `yaml:"working_dir"`
+	Debug   bool        `yaml:"debug" env:"DEBUG"`
+	Env     string      `yaml:"env" env:="ENV"`
+	WorkDir string      `yaml:"working_dir" env:"WORKING_DIR"`
 	HTTP    *HTTPConfig `yaml:"http"`
 }
 
@@ -35,7 +37,8 @@ func NewFromFile(filepath string) (*Config, error) {
 func DefaultConfig() *Config {
 	return &Config{
 		Env:     "dev",
-		WorkDir: "./cmd/server/",
+		Debug:   true,
+		WorkDir: "",
 		HTTP:    DefaultHTTPConfig(),
 	}
 }
@@ -48,6 +51,14 @@ func (c *Config) Dump(w io.Writer) error {
 	}
 
 	if _, err := w.Write(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WithEnvironment(conf *Config) error {
+	if err := env.Parse(conf); err != nil {
 		return err
 	}
 
