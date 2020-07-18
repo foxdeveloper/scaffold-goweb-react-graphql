@@ -3,7 +3,7 @@ import { HashRouter as Router, Route, Redirect, Switch } from "react-router-dom"
 import { Provider } from 'react-redux';
 import { store } from '../store/store';
 
-import { HomePage } from './HomePage/HomePage.tsx.gotpl';
+import { HomePage } from './HomePage/HomePage';
 
 export const App: FunctionComponent<{}> = () => {
   return (
