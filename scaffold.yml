@@ -12,3 +12,21 @@ vars:
     constraints:
       - rule: Input == ""
         message: The module namespace cannot be empty.
+  - type: string
+    name: DatabaseName
+    description: The name of the database
+    constraints:
+      - rule: Input == ""
+        message: The database name cannot be empty.
+  - type: string
+    name: DatabaseUser
+    description: The user of the database
+    constraints:
+      - rule: Input == ""
+        message: The database user cannot be empty.
+  - type: string
+    name: DatabasePassword
+    description: The user's password of the database
+    constraints:
+      - rule: Input == ""
+        message: The database user's password cannot be empty.

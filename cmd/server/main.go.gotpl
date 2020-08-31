@@ -1,44 +1,51 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
-	"{{ .ProjectNamespace }}/internal/config"
-	"{{ .ProjectNamespace }}/internal/route"
+	"{{.ProjectNamespace}}/internal/config"
+
+	"{{.ProjectNamespace}}/internal/route"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/pkg/errors"
+	"gitlab.com/wpetit/goweb/logger"
 	"gitlab.com/wpetit/goweb/middleware/container"
-)
-
-// nolint: gochecknoglobals
-var (
-	GitRef         = "unknown"
-	ProjectVersion = "unknown"
-	BuildDate      = "unknown"
 )
 
 //nolint: gochecknoglobals
 var (
-	configFile   = ""
-	dumpConfig   = false
-	version      = false
-	migrate      = false
-	rollbackLast = false
+	configFile = ""
+	workdir    = ""
+	dumpConfig = false
+	version    = false
+	migrate    = ""
 )
 
+// nolint: gochecknoglobals
+var (
+	GitRef         = "dev"
+	ProjectVersion = "0.0.0"
+	BuildDate      = "unknown"
+)
+
+//nolint: gochecknoinits
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "configuration file")
+	flag.StringVar(&workdir, "workdir", workdir, "working directory")
 	flag.BoolVar(&dumpConfig, "dump-config", dumpConfig, "dump configuration and exit")
 	flag.BoolVar(&version, "version", version, "show version and exit")
-	flag.BoolVar(&migrate, "migrate", migrate, "apply database migration and exit")
-	flag.BoolVar(&rollbackLast, "rollback-last", rollbackLast, "rollback last database migration and exit")
+	flag.StringVar(&migrate, "migrate", migrate, "migrate data schema version and exit, possible values: latest, down, up")
 }
 
 func main() {
+	ctx := context.Background()
+
 	flag.Parse()
 
 	if version {
@@ -47,50 +54,115 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Switch to new working directory if defined
+	if workdir != "" {
+		if err := os.Chdir(workdir); err != nil {
+			logger.Fatal(
+				ctx,
+				"could not change working directory",
+				logger.E(err),
+				logger.F("workdir", workdir),
+			)
+		}
+	}
+
+	// Load configuration file if defined, use default configuration otherwise
 	var conf *config.Config
+
 	var err error
 
 	if configFile != "" {
 		conf, err = config.NewFromFile(configFile)
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Fatalf("%+v", errors.Wrapf(err, " '%s'", configFile))
+			logger.Fatal(
+				ctx,
+				"could not load config file",
+				logger.E(err),
+				logger.F("configFile", configFile),
+			)
 		}
 	} else {
-		conf = config.DefaultConfig()
-	}
-
-	if err := config.WithEnvironment(conf); err != nil {
-		log.Fatalf("%+v", errors.Wrap(err, "could not override config with environment"))
-	}
-
-	if dumpConfig {
-		if err := conf.Dump(os.Stdout); err != nil {
-			log.Fatalf("%+v", errors.Wrapf(err, "could not dump config"))
+		if dumpConfig {
+			conf = config.NewDumpDefault()
+		} else {
+			conf = config.NewDefault()
 		}
+
+	}
+
+	// Dump configuration if asked
+	if dumpConfig {
+		if err := config.Dump(conf, os.Stdout); err != nil {
+			logger.Fatal(
+				ctx,
+				"could not dump config",
+				logger.E(err),
+			)
+		}
+
 		os.Exit(0)
 	}
 
-	if conf.WorkDir != "" {
-		if err := os.Chdir(conf.WorkDir); err != nil {
-			log.Fatalf("%+v", errors.Wrapf(err, "could not change working directory '%s'", conf.WorkDir))
-		}
+	if err := config.WithEnvironment(conf); err != nil {
+		logger.Fatal(
+			ctx,
+			"could not override config with environment",
+			logger.E(err),
+		)
 	}
 
+	logger.Info(
+		ctx,
+		"starting",
+		logger.F("gitRef", GitRef),
+		logger.F("projectVersion", ProjectVersion),
+		logger.F("buildDate", BuildDate),
+	)
+
+	logger.Debug(ctx, "setting log format", logger.F("format", conf.Log.Format))
+	logger.SetFormat(conf.Log.Format)
+
+	logger.Debug(ctx, "setting log level", logger.F("level", conf.Log.Level.String()))
+	logger.SetLevel(conf.Log.Level)
+
 	// Create service container
-	ctn, err := getServiceContainer(conf)
+	ctn, err := getServiceContainer(ctx, conf)
 	if err != nil {
-		log.Fatalf("%+v", errors.Wrap(err, "could not create service container"))
+		logger.Fatal(
+			ctx,
+			"could not create service container",
+			logger.E(err),
+		)
 	}
+
+	ctx = container.WithContainer(ctx, ctn)
 
 	r := chi.NewRouter()
 
+	// Define base middlewares
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// Expose service container on router
 	r.Use(container.ServiceContainer(ctn))
 
-	if err := route.Mount(conf, r); err != nil {
-		log.Fatalf("%+v", errors.Wrapf(err, "could not mount routes"))
+	// Define routes
+	if err := route.Mount(r, conf); err != nil {
+		logger.Fatal(
+			ctx,
+			"could not mount http routes",
+			logger.E(err),
+		)
 	}
 
-	serveHTTP(conf, r)
+	logger.Info(ctx, "listening", logger.F("address", conf.HTTP.Address))
+	if err := http.ListenAndServe(conf.HTTP.Address, r); err != nil {
+		logger.Fatal(
+			ctx,
+			"could not listen",
+			logger.E(err),
+			logger.F("address", conf.HTTP.Address),
+		)
+	}
 }

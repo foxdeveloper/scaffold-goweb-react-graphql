@@ -1,0 +1,15 @@
+import React, { FunctionComponent, useState, Fragment } from 'react';
+import { Build } from './Build/Build';
+
+export interface AppProps {
+
+}
+
+export const App: FunctionComponent<AppProps> = () => {
+  return (
+    <Fragment>
+      <h1>{{.ProjectName }}</h1>
+      <Build />
+    </Fragment>
+  );
+}

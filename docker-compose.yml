@@ -1,0 +1,33 @@
+version: '2.4'
+services:
+  postgres:
+    build:
+      context: ./misc/containers/postgres
+      args:
+        - HTTP_PROXY=${HTTP_PROXY}
+        - HTTPS_PROXY=${HTTPS_PROXY}
+        - http_proxy=${http_proxy}
+        - https_proxy=${https_proxy}
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  smtp:
+    image: bornholm/fake-smtp
+    ports:
+      - 8082:8080
+      - 2525:2525
+    environment:
+      - FAKESMTP_SMTP_ADDRESS=:2525
+      - FAKESMTP_SMTP_DEBUG=true
+      - FAKESMTP_SMTP_USERNAME=
+      - FAKESMTP_SMTP_PASSWORD=
+      - FAKESMTP_SMTP_ALLOWINSECUREAUTH=true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+volumes:
+  postgres_data:

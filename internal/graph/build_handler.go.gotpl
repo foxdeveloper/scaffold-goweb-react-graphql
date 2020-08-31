@@ -1,0 +1,23 @@
+package graph
+
+import (
+	"context"
+
+	"gitlab.com/wpetit/goweb/middleware/container"
+	"gitlab.com/wpetit/goweb/service/build"
+
+	"{{.ProjectNamespace}}/internal/graph/model"
+)
+
+func handleBuild(ctx context.Context) (*model.Build, error) {
+	ctn := container.Must(ctx)
+	build := build.Must(ctn)
+
+	res := &model.Build{
+		GitRef:         &build.GitRef,
+		ProjectVersion: &build.ProjectVersion,
+		BuildDate:      &build.BuildDate,
+	}
+
+	return res, nil
+}
