@@ -1,9 +1,10 @@
 # {{ .ProjectName }}
 
-## Développement
-```bash
+## Get Started
+```
 make deps
-make dump-config
+make up
+# in another terminal
 make watch
 ```
 
@@ -11,6 +12,15 @@ Les services suivants devraient être disponibles après démarrage de l'environ
 
 |Service|Type|Accès|Description|
 |-------|----|-----|-----------|
-|Application React|HTTP (UI)|http://localhost:9000/|Page d'accueil de l'application React|
-|Interface Web GraphQL|HTTP (UI)|http://localhost:9000/graphql (GET)|Interface Web de développement de l'API GraphQL (mode debug uniquement)|
-|Serveur GraphQL|HTTP (GraphQL)|http://localhost:9000/graphql (POST)|Point d'entrée de l'API GraphQL|
+|Application React|HTTP (UI)|http://localhost:8080/|Page d'accueil de l'application React (serveur Webpack)|
+|Interface Web GraphQL|HTTP (UI)|http://localhost:8081/api/v1/playground|Interface Web de développement de l'API GraphQL (mode debug uniquement, nécessite d'être authentifié)|
+|Serveur GraphQL|HTTP (GraphQL)|http://localhost:8081/api/v1/graphql (POST)|Point d'entrée de l'API GraphQL|
+|Serveur FakeSMTP|HTTP|http://localhost:8082|Interface web du serveur [FakeSMTP](https://forge.cadoles.com/wpetit/fake-smtp)
+|Serveur PostgreSQL|TCP/IP (PostgreSQL)|`127.0.0.1:5432`|Port de connexion à la base de données PostgreSQL de développement|
+
+#### Fichiers/répertoires notables
+
+|Chemin|Description|
+|------------------|-----------|
+|`docker-compose.yml`|Configuration de l'environnement Docker Compose|
+|`client/src`|Sources du frontend ([React](https://reactjs.org))|

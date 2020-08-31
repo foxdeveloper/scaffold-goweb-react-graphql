@@ -1,0 +1,61 @@
+package route
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"{{.ProjectNamespace}}/internal/config"
+	"{{.ProjectNamespace}}/internal/graph"
+	"{{.ProjectNamespace}}/internal/graph/generated"
+	"github.com/go-chi/chi"
+	"github.com/gorilla/websocket"
+	"github.com/rs/cors"
+	"gitlab.com/wpetit/goweb/static"
+)
+
+func Mount(r *chi.Mux, config *config.Config) error {
+
+	r.Route("/api", func(r chi.Router) {
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   config.HTTP.CORS.AllowedOrigins,
+			AllowCredentials: config.HTTP.CORS.AllowCredentials,
+			Debug:            config.Debug,
+		}).Handler)
+
+		gql := handler.New(
+			generated.NewExecutableSchema(generated.Config{
+				Resolvers: &graph.Resolver{},
+			}),
+		)
+
+		gql.AddTransport(transport.POST{})
+		gql.AddTransport(&transport.Websocket{
+			KeepAlivePingInterval: 10 * time.Second,
+			Upgrader: websocket.Upgrader{
+				CheckOrigin: func(r *http.Request) bool {
+					// TODO Check WS connection origin
+					return true
+				},
+				ReadBufferSize:  1024,
+				WriteBufferSize: 1024,
+			},
+		})
+
+		if config.Debug {
+			gql.Use(extension.Introspection{})
+			r.Get("/v1/playground", playground.Handler("GraphQL playground", "/api/v1/graphql"))
+		}
+
+		r.Handle("/v1/graphql", gql)
+	})
+
+	// Serve static files
+	notFoundHandler := r.NotFoundHandler()
+	r.Get("/*", static.Dir(config.HTTP.PublicDir, "", notFoundHandler))
+
+	return nil
+}

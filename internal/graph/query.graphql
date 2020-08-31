@@ -1,0 +1,11 @@
+scalar Time
+
+type Build {
+    gitRef: String
+    projectVersion: String
+    buildDate: String
+}
+
+type Query {
+    build: Build
+}

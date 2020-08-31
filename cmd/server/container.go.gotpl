@@ -1,19 +1,20 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
-	"{{ .ProjectNamespace }}/internal/build"
-	"{{ .ProjectNamespace }}/internal/config"
+	"{{.ProjectNamespace}}/internal/config"
 	"github.com/gorilla/sessions"
 	"github.com/pkg/errors"
 	"gitlab.com/wpetit/goweb/service"
+	"gitlab.com/wpetit/goweb/service/build"
 	"gitlab.com/wpetit/goweb/service/session"
 	"gitlab.com/wpetit/goweb/session/gorilla"
 )
 
-func getServiceContainer(conf *config.Config) (*service.Container, error) {
+func getServiceContainer(ctx context.Context, conf *config.Config) (*service.Container, error) {
 	// Initialize and configure service container
 	ctn := service.NewContainer()
 
@@ -59,7 +60,7 @@ func getServiceContainer(conf *config.Config) (*service.Container, error) {
 
 	ctn.Provide(
 		session.ServiceName,
-		gorilla.ServiceProvider("trading_bot", cookieStore),
+		gorilla.ServiceProvider("ledger", cookieStore),
 	)
 
 	// Create and expose config service provider

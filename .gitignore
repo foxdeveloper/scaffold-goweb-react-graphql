@@ -1,0 +1,5 @@
+/vendor
+/data
+/bin
+/.env
+/release
